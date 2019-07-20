@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <title>miniCA</title>
+        <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    <body>
+        <header>
+            <h1>MiniCA - A Tiny CA</h1>
+        </header>
+        <main>
+            <div class="warning">
+                Note that MiniCA is for lab in a trusted, lab environment only. Don't use this in production systems or untrusted networks.
+            </div>
+            {{ if . }}
+            <div>
+                {{.}}
+            </div>
+            {{ end }}
+            <div id="certlist">
+                <a href="static/certs/fakernet-ca.crt">CA Cert (PEM - Linux/*nix)</a>
+                <a href="static/certs/fakernet-ca.p7b">CA Cert (P7B - Windows)</a>
+            </div>
+            <form enctype="multipart/form-data" action="/" method="post">
+                <input type="file" name="csrfile" />
+                <input type="password" name="password"/>
+                <input type="submit" value="Upload CSR" />
+            </form>
+        </main>
+    </body>
+</html>

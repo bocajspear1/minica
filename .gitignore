@@ -1,0 +1,7 @@
+**/*.p7b
+**/*.crt
+**/*.key
+**/*.csr
+certs/*
+!certs/.gitkeep
+/minica
