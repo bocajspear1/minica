@@ -72,6 +72,7 @@ func generateRandomPassword() (string, error) {
 
 func generateCACert() error {
 
+	log.Println("Setting up serial")
 	ioutil.WriteFile(caSerialPath, []byte(strconv.FormatInt(int64(400), 10)), 0644)
 
 	ca := &x509.Certificate{
@@ -92,6 +93,7 @@ func generateCACert() error {
 		BasicConstraintsValid: true,
 	}
 
+	log.Println("Generating CA key")
 	privatekey, err := rsa.GenerateKey(rand.Reader, 2048)
 	publicKey := &privatekey.PublicKey
 
@@ -114,6 +116,7 @@ func generateCACert() error {
 		return err
 	}
 
+	log.Println("Saving CA password")
 	// Write out the CA password
 	passwordOut, err := os.OpenFile(caPassPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	passwordOut.Write([]byte(password))
@@ -124,16 +127,19 @@ func generateCACert() error {
 		return err
 	}
 
+	log.Println("Saving CA private key")
 	keyOut, err := os.OpenFile(caKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	pem.Encode(keyOut, block)
 	keyOut.Close()
 
 	// Convert and copy the certifcate
+	log.Println("Copying certs")
 	copyFile(caCertPath, "./web/static/certs/fakernet-ca.crt")
+	log.Println("Coverting certs")
 	cmd := exec.Command("openssl", "crl2pkcs7", "-nocrl", "-certfile", "./web/static/certs/fakernet-ca.crt", "-out", "./web/static/certs/fakernet-ca.p7b")
-	_, err = cmd.Output()
+	output, err := cmd.Output()
 	if err != nil {
-		return err
+		return errors.New("Failed: " + string(output) + " - " + err.Error())
 	}
 
 	return nil
@@ -152,12 +158,14 @@ func generateServerCert(domain string) error {
 
 	rawSubject := requestSubject.ToRDNSequence()
 
+	log.Println("Generating server key")
 	// Generate keys
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return err
 	}
 	// Save private key
+	log.Println("Saving server private key")
 	keyOut, err := os.OpenFile(serverKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
@@ -172,6 +180,7 @@ func generateServerCert(domain string) error {
 		SignatureAlgorithm: x509.SHA256WithRSA,
 	}
 
+	log.Println("Creating server signing request")
 	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &template, privateKey)
 	if err != nil {
 		return err
@@ -193,10 +202,12 @@ func generateServerCert(domain string) error {
 		return err
 	}
 
+	log.Println("Requesting server certificate to be signed")
 	certificateContents, err := signCertifcate(string(csrContents), string(password))
 	if err != nil {
 		return err
 	}
+	log.Println("Writing server certificate")
 	certOut, err := os.Create(serverCertPath)
 	certOut.Write(certificateContents)
 	certOut.Close()
@@ -286,6 +297,7 @@ func signCertifcate(csrContents string, password string) ([]byte, error) {
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
 
+	log.Println("Signing certificate for " + decodedCSR.Subject.CommonName)
 	clientCRTRaw, err := x509.CreateCertificate(rand.Reader, &clientCRTTemplate, caCert, decodedCSR.PublicKey, caPair.PrivateKey)
 	if err != nil {
 		return nil, errors.New("Failed to sign certificate: " + err.Error())
