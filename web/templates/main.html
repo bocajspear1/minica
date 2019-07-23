@@ -20,11 +20,23 @@
                 <a href="static/certs/fakernet-ca.crt">CA Cert (PEM - Linux/*nix)</a>
                 <a href="static/certs/fakernet-ca.p7b">CA Cert (P7B - Windows)</a>
             </div>
-            <form enctype="multipart/form-data" action="/" method="post">
-                <input type="file" name="csrfile" />
-                <input type="password" name="password"/>
-                <input type="submit" value="Upload CSR" />
-            </form>
+            <div>
+                <form id="upload-form" enctype="multipart/form-data" action="/" method="post">
+                    <h3>Sign CSR</h3>
+                    <label>CSR File</label>
+                    <input type="file" name="csrfile" />
+                    <label>CA Password</label>
+                    <input type="password" name="password"/>
+                    <input type="submit" value="Upload CSR" />
+                </form>
+            </div>
+            <div>
+                <p>OpenSSL command to generate CSR:</p>
+                <pre>
+                    openssl req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr
+                </pre>
+            </div>
+            
         </main>
     </body>
 </html>

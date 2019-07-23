@@ -2,10 +2,16 @@ html, body {
     margin: 0px;
     padding: 0px;
     background-color: #f1f1f1;
+    font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
 }
 
 h1 {
     text-align: center;
+}
+
+div {
+    padding: 15px;
+    margin: 10px;
 }
 
 .warning {
@@ -22,4 +28,29 @@ h1 {
     padding: 10px;
     color: blue;
     text-align: center;
+}
+
+#upload-form {
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+#upload-form h3{
+    text-align: center;
+}
+
+#upload-form input {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+#upload-form label {
+    text-align: center;
+    font-weight: bold;
 }
