@@ -73,7 +73,7 @@ func generateRandomPassword() (string, error) {
 func generateCACert() error {
 
 	log.Println("Setting up serial")
-	ioutil.WriteFile(caSerialPath, []byte(strconv.FormatInt(int64(400), 10)), 0644)
+	ioutil.WriteFile(caSerialPath, []byte(strconv.FormatInt(int64(1000), 10)), 0644)
 
 	ca := &x509.Certificate{
 		SerialNumber: big.NewInt(1654),
@@ -292,7 +292,7 @@ func signCertifcate(csrContents string, password string) ([]byte, error) {
 		Issuer:             decodedCSR.Subject,
 		Subject:            decodedCSR.Subject,
 		NotBefore:          time.Now(),
-		NotAfter:           time.Now().Add(24 * time.Hour),
+		NotAfter:           time.Now().AddDate(5, 0, 0),
 		KeyUsage:           x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
