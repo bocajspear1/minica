@@ -17,6 +17,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/big"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -150,7 +151,7 @@ func generateCACert() error {
 	return nil
 }
 
-func generateServerCert(domain string) error {
+func generateServerCert(domain string, ip string) error {
 	requestSubject := pkix.Name{
 		Organization:  []string{"FakerNet CA Server"},
 		Country:       []string{"US"},
@@ -178,11 +179,18 @@ func generateServerCert(domain string) error {
 	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
 	keyOut.Close()
 
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return errors.New("Invalid IP address")
+	}
+
 	asn1Subj, _ := asn1.Marshal(rawSubject)
 	template := x509.CertificateRequest{
 		RawSubject:         asn1Subj,
 		EmailAddresses:     []string{"fakernet@ca.fake"},
 		SignatureAlgorithm: x509.SHA256WithRSA,
+		IPAddresses:        []net.IP{parsedIP},
+		DNSNames:           []string{domain},
 	}
 
 	log.Println("Creating server signing request")
@@ -289,17 +297,23 @@ func signCertifcate(csrContents string, password string) ([]byte, error) {
 
 	// create client certificate template
 	clientCRTTemplate := x509.Certificate{
-		Signature:          decodedCSR.Signature,
-		SignatureAlgorithm: decodedCSR.SignatureAlgorithm,
-		PublicKeyAlgorithm: decodedCSR.PublicKeyAlgorithm,
-		PublicKey:          decodedCSR.PublicKey,
-		SerialNumber:       big.NewInt(newSerial),
-		Issuer:             decodedCSR.Subject,
-		Subject:            decodedCSR.Subject,
-		NotBefore:          time.Now(),
-		NotAfter:           time.Now().AddDate(5, 0, 0),
-		KeyUsage:           x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		Signature:             decodedCSR.Signature,
+		SignatureAlgorithm:    decodedCSR.SignatureAlgorithm,
+		PublicKeyAlgorithm:    decodedCSR.PublicKeyAlgorithm,
+		PublicKey:             decodedCSR.PublicKey,
+		SerialNumber:          big.NewInt(newSerial),
+		Issuer:                decodedCSR.Subject,
+		Subject:               decodedCSR.Subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(5, 0, 0),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		Extensions:            decodedCSR.Extensions,
+		ExtraExtensions:       decodedCSR.ExtraExtensions,
+		IPAddresses:           decodedCSR.IPAddresses,
+		DNSNames:              decodedCSR.DNSNames,
+		IsCA:                  false,
+		BasicConstraintsValid: true,
 	}
 
 	log.Println("Signing certificate for " + decodedCSR.Subject.CommonName)
@@ -362,10 +376,15 @@ func main() {
 		log.Fatalln("No CA server domain set")
 	}
 	if len(args) == 1 {
+		log.Fatalln("No IP set")
+	}
+	if len(args) == 2 {
 		log.Fatalln("No port set")
 	}
 
 	caDomain := args[0]
+	serverIP := args[1]
+	serverPort := args[2]
 
 	// Check for CA certs
 	_, err := os.Stat(caCertPath)
@@ -374,7 +393,7 @@ func main() {
 		if err != nil {
 			log.Fatalln("Failed to create CA: " + err.Error())
 		}
-		err = generateServerCert(caDomain)
+		err = generateServerCert(caDomain, serverIP)
 		if err != nil {
 			log.Fatalln("Failed to create server certificate: " + err.Error())
 		}
@@ -383,5 +402,5 @@ func main() {
 	fs := http.FileServer(http.Dir("web/static/"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 	http.HandleFunc("/", mainHandler)
-	log.Fatal(http.ListenAndServeTLS(":"+args[1], serverCertPath, serverKeyPath, nil))
+	log.Fatal(http.ListenAndServeTLS(":"+serverPort, serverCertPath, serverKeyPath, nil))
 }
