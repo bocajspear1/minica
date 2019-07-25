@@ -75,10 +75,15 @@ func generateCACert() error {
 	log.Println("Setting up serial")
 	ioutil.WriteFile(caSerialPath, []byte(strconv.FormatInt(int64(1000), 10)), 0644)
 
+	newSerial, err := rand.Int(rand.Reader, big.NewInt(10000))
+	if err != nil {
+		return err
+	}
+
 	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(1654),
+		SerialNumber: newSerial,
 		Subject: pkix.Name{
-			Organization:  []string{"FakerNet CA --FOR LAB USE ONLY--"},
+			Organization:  []string{"FakerNet CA --FOR LAB USE ONLY-- Generated " + time.Now().String()},
 			Country:       []string{"US"},
 			Province:      []string{"SomeState"},
 			Locality:      []string{"SomeCity"},
